@@ -82,7 +82,7 @@ export default function VideoUpload({ onUploadComplete, onUploadStart }: VideoUp
         <input
           ref={inputRef}
           type="file"
-          accept="video/*"
+          accept="video/*,.mp4,.mov,.webm,.avi,.mkv"
           className="hidden"
           onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
         />
