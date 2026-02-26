@@ -1,6 +1,8 @@
 import { GoogleGenAI, FileState } from '@google/genai';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+function getAI() {
+  return new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+}
 
 function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -15,6 +17,7 @@ export async function uploadVideoToGemini(blobUrl: string): Promise<{ name: stri
   const contentType = response.headers.get('content-type') || 'video/mp4';
 
   // Upload to Gemini File API
+  const ai = getAI();
   const file = await ai.files.upload({
     file: new Blob([buffer], { type: contentType }),
     config: { mimeType: contentType },
@@ -39,6 +42,7 @@ export async function uploadVideoToGemini(blobUrl: string): Promise<{ name: stri
 }
 
 export async function analyzeStrokes(fileUri: string, prompt: string): Promise<string> {
+  const ai = getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-2.5-flash',
     contents: [
@@ -60,6 +64,7 @@ export async function analyzeStrokes(fileUri: string, prompt: string): Promise<s
 }
 
 export async function analyzeTechnique(fileUri: string, prompt: string): Promise<string> {
+  const ai = getAI();
   const response = await ai.models.generateContent({
     model: 'gemini-2.5-pro',
     contents: [
@@ -82,7 +87,7 @@ export async function analyzeTechnique(fileUri: string, prompt: string): Promise
 
 export async function deleteGeminiFile(name: string): Promise<void> {
   try {
-    await ai.files.delete({ name });
+    await getAI().files.delete({ name });
   } catch {
     // File may have already expired, ignore errors
   }
