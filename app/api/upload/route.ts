@@ -8,36 +8,29 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const jsonResponse = await handleUpload({
       body,
       request,
-      onBeforeGenerateToken: async (pathname) => {
-        // Validate file type
-        const allowedTypes = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo', 'video/x-matroska'];
-        const ext = pathname.split('.').pop()?.toLowerCase();
-        const extToMime: Record<string, string> = {
-          mp4: 'video/mp4',
-          mov: 'video/quicktime',
-          webm: 'video/webm',
-          avi: 'video/x-msvideo',
-          mkv: 'video/x-matroska',
-        };
-
-        if (ext && extToMime[ext] && !allowedTypes.includes(extToMime[ext])) {
-          throw new Error('Invalid file type. Please upload a video file (MP4, MOV, WebM, AVI, MKV).');
-        }
-
+      onBeforeGenerateToken: async () => {
         return {
-          allowedContentTypes: allowedTypes,
-          maximumSizeInBytes: 500 * 1024 * 1024, // 500MB
-          tokenPayload: JSON.stringify({ uploadedAt: Date.now() }),
+          allowedContentTypes: [
+            'video/mp4',
+            'video/quicktime',
+            'video/webm',
+            'video/x-msvideo',
+            'video/x-matroska',
+            'video/mov',
+            'video/avi',
+          ],
+          maximumSizeInBytes: 500 * 1024 * 1024,
         };
       },
-      onUploadCompleted: async () => {
-        // Could log upload completion here
+      onUploadCompleted: async ({ blob }) => {
+        console.log('Upload completed:', blob.url);
       },
     });
 
     return NextResponse.json(jsonResponse);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Upload failed';
+    console.error('Upload route error:', message);
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }

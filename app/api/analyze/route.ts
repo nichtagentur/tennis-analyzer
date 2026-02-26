@@ -17,6 +17,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing blobUrl or playerSide' }, { status: 400 });
     }
 
+    // Verify the blob URL is accessible before proceeding
+    const headCheck = await fetch(blobUrl, { method: 'HEAD' });
+    if (!headCheck.ok) {
+      console.error('Blob URL not accessible:', blobUrl, 'status:', headCheck.status);
+      return NextResponse.json(
+        { error: `Video file not accessible (${headCheck.status}). Please try uploading again.` },
+        { status: 400 }
+      );
+    }
+
     // Upload video to Gemini File API
     const geminiFile = await uploadVideoToGemini(blobUrl);
 
