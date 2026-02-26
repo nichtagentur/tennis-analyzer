@@ -7,8 +7,9 @@ export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
   try {
-    const { geminiFileUri, strokeType, playerSide } = (await request.json()) as {
+    const { geminiFileUri, geminiFileMimeType, strokeType, playerSide } = (await request.json()) as {
       geminiFileUri: string;
+      geminiFileMimeType: string;
       strokeType: string;
       playerSide: PlayerSide;
     };
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
     }
 
     const prompt = techniqueAnalysisPrompt(strokeType, playerSide);
-    const rawResult = await analyzeTechnique(geminiFileUri, prompt);
+    const rawResult = await analyzeTechnique(geminiFileUri, geminiFileMimeType || 'video/mp4', prompt);
 
     const parsed: TechniqueAnalysis = JSON.parse(rawResult);
 

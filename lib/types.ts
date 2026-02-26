@@ -16,6 +16,7 @@ export interface AnalysisResult {
   summary: string;
   geminiFileName: string;
   geminiFileUri: string;
+  geminiFileMimeType: string;
 }
 
 export interface TechniqueSection {

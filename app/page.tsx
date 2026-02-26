@@ -55,6 +55,7 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           geminiFileUri: analysisResult.geminiFileUri,
+          geminiFileMimeType: analysisResult.geminiFileMimeType,
           strokeType,
           playerSide,
         }),

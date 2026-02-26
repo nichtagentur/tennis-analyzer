@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     // Run stroke analysis with Gemini Flash
     const prompt = strokeCountingPrompt(playerSide);
-    const rawResult = await analyzeStrokes(geminiFile.uri, prompt);
+    const rawResult = await analyzeStrokes(geminiFile.uri, geminiFile.mimeType, prompt);
 
     // Parse the JSON response
     const parsed = JSON.parse(rawResult);
@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
       summary: parsed.summary || '',
       geminiFileName: geminiFile.name,
       geminiFileUri: geminiFile.uri,
+      geminiFileMimeType: geminiFile.mimeType,
     };
 
     return NextResponse.json(result);
