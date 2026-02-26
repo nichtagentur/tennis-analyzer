@@ -1,64 +1,155 @@
-import Image from "next/image";
+'use client';
+
+import { useState } from 'react';
+import { AppState, PlayerSide, AnalysisResult, TechniqueAnalysis } from '@/lib/types';
+import VideoUpload from './components/VideoUpload';
+import LoadingState from './components/LoadingState';
+import AnalysisDashboard from './components/AnalysisDashboard';
+import TechniqueDetail from './components/TechniqueDetail';
 
 export default function Home() {
+  const [appState, setAppState] = useState<AppState>('IDLE');
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [techniqueResult, setTechniqueResult] = useState<TechniqueAnalysis | null>(null);
+  const [playerSide, setPlayerSide] = useState<PlayerSide>('near');
+  const [loadingStroke, setLoadingStroke] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleUploadStart = () => {
+    setAppState('UPLOADING');
+    setError(null);
+  };
+
+  const handleUploadComplete = async (blobUrl: string, side: PlayerSide) => {
+    setPlayerSide(side);
+    setAppState('ANALYZING');
+
+    try {
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ blobUrl, playerSide: side }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Analysis failed');
+      }
+
+      const result: AnalysisResult = await response.json();
+      setAnalysisResult(result);
+      setAppState('RESULTS');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Analysis failed');
+      setAppState('IDLE');
+    }
+  };
+
+  const handleStrokeClick = async (strokeType: string) => {
+    if (!analysisResult) return;
+    setLoadingStroke(strokeType);
+
+    try {
+      const response = await fetch('/api/technique', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          geminiFileUri: analysisResult.geminiFileUri,
+          strokeType,
+          playerSide,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Technique analysis failed');
+      }
+
+      const result: TechniqueAnalysis = await response.json();
+      setTechniqueResult(result);
+      setAppState('TECHNIQUE');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Technique analysis failed');
+    } finally {
+      setLoadingStroke(null);
+    }
+  };
+
+  const handleReset = () => {
+    setAppState('IDLE');
+    setAnalysisResult(null);
+    setTechniqueResult(null);
+    setError(null);
+    setLoadingStroke(null);
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+      {/* Header */}
+      <header className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+        <div className="max-w-5xl mx-auto px-6 py-5 flex items-center gap-3">
+          <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center">
+            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">Tennis Analyzer</h1>
+            <p className="text-sm text-zinc-500">AI-powered stroke analysis for coaches</p>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+      </header>
+
+      {/* Main content */}
+      <main className="max-w-5xl mx-auto px-6 py-10">
+        {/* Error banner */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-400 flex items-center justify-between">
+            <span>{error}</span>
+            <button type="button" onClick={() => setError(null)} className="text-red-400 hover:text-red-600">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
+
+        {appState === 'IDLE' && (
+          <div className="space-y-8">
+            <div className="text-center space-y-3">
+              <h2 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100">
+                Analyze Tennis Technique
+              </h2>
+              <p className="text-lg text-zinc-500 max-w-xl mx-auto">
+                Upload a match or training video and get AI-powered stroke counting
+                and detailed technique feedback for your players.
+              </p>
+            </div>
+            <VideoUpload
+              onUploadComplete={handleUploadComplete}
+              onUploadStart={handleUploadStart}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+          </div>
+        )}
+
+        {appState === 'UPLOADING' && <LoadingState stage="uploading" />}
+        {appState === 'ANALYZING' && <LoadingState stage="analyzing" />}
+
+        {appState === 'RESULTS' && analysisResult && (
+          <AnalysisDashboard
+            result={analysisResult}
+            onStrokeClick={handleStrokeClick}
+            loadingStroke={loadingStroke}
+            onReset={handleReset}
+          />
+        )}
+
+        {appState === 'TECHNIQUE' && techniqueResult && (
+          <TechniqueDetail
+            analysis={techniqueResult}
+            onClose={() => setAppState('RESULTS')}
+          />
+        )}
       </main>
     </div>
   );
